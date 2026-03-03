@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#0f0f1a"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#6c63ff"/>
+      <stop offset="100%" stop-color="#48b1ff"/>
+    </linearGradient>
+    <linearGradient id="activeGlow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#6c63ff" stop-opacity="0.3"/>
+      <stop offset="50%" stop-color="#48b1ff" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#6c63ff" stop-opacity="0.3"/>
+    </linearGradient>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <clipPath id="roundedClip">
+      <rect x="0" y="0" width="1024" height="1024" rx="228" ry="228"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <g clip-path="url(#roundedClip)">
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+
+    <!-- Subtle grid texture -->
+    <line x1="0" y1="300" x2="1024" y2="300" stroke="#ffffff" stroke-opacity="0.02" stroke-width="1"/>
+    <line x1="0" y1="420" x2="1024" y2="420" stroke="#ffffff" stroke-opacity="0.02" stroke-width="1"/>
+    <line x1="0" y1="540" x2="1024" y2="540" stroke="#ffffff" stroke-opacity="0.02" stroke-width="1"/>
+    <line x1="0" y1="660" x2="1024" y2="660" stroke="#ffffff" stroke-opacity="0.02" stroke-width="1"/>
+
+    <!-- Active line glow background -->
+    <rect x="0" y="448" width="1024" height="128" fill="url(#activeGlow)"/>
+
+    <!-- Script lines - dimmed (above active) -->
+    <rect x="200" y="280" width="420" height="18" rx="9" fill="#ffffff" fill-opacity="0.12"/>
+    <rect x="200" y="316" width="340" height="18" rx="9" fill="#ffffff" fill-opacity="0.12"/>
+
+    <rect x="200" y="372" width="480" height="18" rx="9" fill="#ffffff" fill-opacity="0.18"/>
+    <rect x="200" y="408" width="380" height="18" rx="9" fill="#ffffff" fill-opacity="0.18"/>
+
+    <!-- Active line - bright with gradient -->
+    <rect x="200" y="478" width="300" height="22" rx="11" fill="url(#glow)" filter="url(#softGlow)"/>
+    <rect x="520" y="478" width="180" height="22" rx="11" fill="#ffffff" fill-opacity="0.9"/>
+    <rect x="720" y="478" width="104" height="22" rx="11" fill="#ffffff" fill-opacity="0.25"/>
+
+    <!-- Script lines - dimmed (below active) -->
+    <rect x="200" y="546" width="460" height="18" rx="9" fill="#ffffff" fill-opacity="0.18"/>
+    <rect x="200" y="582" width="360" height="18" rx="9" fill="#ffffff" fill-opacity="0.18"/>
+
+    <rect x="200" y="638" width="400" height="18" rx="9" fill="#ffffff" fill-opacity="0.12"/>
+    <rect x="200" y="674" width="320" height="18" rx="9" fill="#ffffff" fill-opacity="0.12"/>
+
+    <rect x="200" y="730" width="440" height="18" rx="9" fill="#ffffff" fill-opacity="0.06"/>
+    <rect x="200" y="766" width="280" height="18" rx="9" fill="#ffffff" fill-opacity="0.06"/>
+
+    <!-- Left accent bar -->
+    <rect x="160" y="468" width="4" height="42" rx="2" fill="url(#glow)" filter="url(#softGlow)"/>
+
+    <!-- Sound wave indicator (top-right) -->
+    <g transform="translate(760, 200)" fill="none" stroke="url(#glow)" stroke-width="6" stroke-linecap="round" opacity="0.7">
+      <path d="M0,40 Q0,0 0,-40" />
+      <path d="M24,56 Q24,0 24,-56" />
+      <path d="M48,40 Q48,0 48,-40" />
+    </g>
+  </g>
+</svg>
