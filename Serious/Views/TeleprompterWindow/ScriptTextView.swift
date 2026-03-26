@@ -4,56 +4,43 @@ struct ScriptTextView: View {
     let script: Script
     @Environment(AppSettings.self) private var settings
     @Environment(TeleprompterViewModel.self) private var viewModel
-    @State private var wordYPositions: [Int: CGFloat] = [:]
-    @State private var scrollOffset: CGFloat = 0
+    @State private var scrollTarget: Int?
 
     var body: some View {
         let currentIndex = viewModel.scrollState.currentWordIndex
 
-        GeometryReader { _ in
-            FlowLayout(horizontalSpacing: settings.fontSize * 0.3, verticalSpacing: settings.fontSize * 0.4) {
-                ForEach(script.words) { word in
-                    Text(word.text)
-                        .font(.system(size: settings.fontSize, weight: .regular))
-                        .foregroundColor(word.id <= currentIndex ? settings.readColor : settings.upcomingColor)
-                        .background(
-                            GeometryReader { geo in
-                                Color.clear.anchorPreference(key: WordYPreference.self, value: .top) { anchor in
-                                    [word.id: geo[anchor].y]
-                                }
-                            }
-                        )
+        ScrollViewReader { proxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                FlowLayout(horizontalSpacing: settings.fontSize * 0.3, verticalSpacing: settings.fontSize * 0.4) {
+                    ForEach(script.words) { word in
+                        Text(word.text)
+                            .font(.system(size: settings.fontSize, weight: .regular))
+                            .foregroundColor(word.id <= currentIndex ? settings.readColor : settings.upcomingColor)
+                            .id(word.id)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+                .padding(.bottom, 400)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .scrollDisabled(true)
+            .onChange(of: currentIndex) { oldIndex, newIndex in
+                guard !viewModel.scrollState.isPaused else { return }
+                // Only scroll when we move to a new line (reduces jitter from
+                // same-line word changes). Approximate by checking if the jump
+                // crosses roughly a line's worth of words.
+                let wordsPerLine = max(1, Int(settings.windowWidth / (settings.fontSize * 4)))
+                let oldLine = oldIndex / wordsPerLine
+                let newLine = newIndex / wordsPerLine
+                if oldLine != newLine || scrollTarget == nil {
+                    scrollTarget = newIndex
+                    withAnimation(.interpolatingSpring(stiffness: 40, damping: 15)) {
+                        proxy.scrollTo(newIndex, anchor: UnitPoint(x: 0.5, y: 0.15))
+                    }
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .offset(y: -scrollOffset)
         }
-        .clipped()
-        .onPreferenceChange(WordYPreference.self) { positions in
-            wordYPositions = positions
-        }
-        .onChange(of: currentIndex) { _, newIndex in
-            guard !viewModel.scrollState.isPaused else { return }
-            updateOffset(for: newIndex)
-        }
-    }
-
-    private func updateOffset(for index: Int) {
-        guard let targetY = wordYPositions[index] else { return }
-        // Keep a small top margin so the current line isn't flush with the edge
-        let offset = max(0, targetY - 8)
-        withAnimation(.smooth(duration: 1.2)) {
-            scrollOffset = offset
-        }
-    }
-}
-
-private struct WordYPreference: PreferenceKey {
-    nonisolated(unsafe) static var defaultValue: [Int: CGFloat] = [:]
-    static func reduce(value: inout [Int: CGFloat], nextValue: () -> [Int: CGFloat]) {
-        value.merge(nextValue()) { _, new in new }
     }
 }
 
