@@ -6,82 +6,81 @@ struct ScriptTextView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(TeleprompterViewModel.self) private var viewModel
 
-    /// First word index on each visual row. Computed once per script/settings change.
-    @State private var rowStartIndices: [Int] = []
-    @State private var lastScrolledRow: Int = -1
+    /// Y offset for each row, computed once when script/font changes.
+    @State private var rowYOffsets: [CGFloat] = [0]
+    /// Maps word index → row number.
+    @State private var wordRowMap: [Int] = []
+    /// Current animated scroll offset.
+    @State private var scrollOffset: CGFloat = 0
+    @State private var lastRow: Int = 0
 
     var body: some View {
         let currentIndex = viewModel.scrollState.currentWordIndex
 
-        ScrollViewReader { proxy in
-            ScrollView(.vertical, showsIndicators: false) {
-                FlowLayout(
-                    horizontalSpacing: settings.fontSize * 0.35,
-                    verticalSpacing: settings.fontSize * 0.5
-                ) {
-                    ForEach(script.words) { word in
-                        Text(word.text)
-                            .font(.system(size: settings.fontSize, weight: .medium, design: .monospaced))
-                            .foregroundColor(.white.opacity(0.9))
-                            .id(word.id)
-                    }
+        GeometryReader { geo in
+            FlowLayout(
+                horizontalSpacing: settings.fontSize * 0.35,
+                verticalSpacing: settings.fontSize * 0.5
+            ) {
+                ForEach(script.words) { word in
+                    Text(word.text)
+                        .font(.system(size: settings.fontSize, weight: .medium, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.9))
                 }
-                .padding(.horizontal, 8)
-                .padding(.top, 4)
-                .padding(.bottom, 300)
-                .frame(maxWidth: .infinity, alignment: .center)
             }
-            .scrollDisabled(true)
-            .onChange(of: currentIndex) { _, newIndex in
-                guard !viewModel.scrollState.isPaused else { return }
-                let row = rowForWord(newIndex)
-                if row != lastScrolledRow {
-                    lastScrolledRow = row
-                    withAnimation(.easeOut(duration: 0.5)) {
-                        proxy.scrollTo(newIndex, anchor: UnitPoint(x: 0.5, y: 0.1))
-                    }
+            .padding(.horizontal, 8)
+            .padding(.top, 4)
+            .frame(width: geo.size.width, alignment: .center)
+            .offset(y: -scrollOffset)
+        }
+        .clipped()
+        .onAppear { computeLayout() }
+        .onChange(of: settings.fontSize) { _, _ in computeLayout() }
+        .onChange(of: settings.windowWidth) { _, _ in computeLayout() }
+        .onChange(of: currentIndex) { _, newIndex in
+            guard !viewModel.scrollState.isPaused else { return }
+            guard newIndex < wordRowMap.count else { return }
+            let row = wordRowMap[newIndex]
+            if row != lastRow {
+                lastRow = row
+                let targetY = row < rowYOffsets.count ? rowYOffsets[row] : 0
+                withAnimation(.easeInOut(duration: 0.8)) {
+                    scrollOffset = targetY
                 }
             }
         }
-        .onAppear { computeRows() }
-        .onChange(of: settings.fontSize) { _, _ in computeRows() }
-        .onChange(of: settings.windowWidth) { _, _ in computeRows() }
     }
 
-    /// Pre-compute which word starts each visual row based on font metrics.
-    private func computeRows() {
+    /// Pre-compute row Y offsets and word→row mapping using font metrics.
+    private func computeLayout() {
         let font = NSFont.monospacedSystemFont(ofSize: settings.fontSize, weight: .medium)
-        let availableWidth = settings.windowWidth - 16 // horizontal padding
-        let spacing = settings.fontSize * 0.35
+        let availableWidth = settings.windowWidth - 16
+        let hSpacing = settings.fontSize * 0.35
+        let vSpacing = settings.fontSize * 0.5
+        let lineHeight = font.ascender - font.descender + font.leading
 
-        var starts: [Int] = [0]
+        var rowY: [CGFloat] = [0]
+        var wordToRow: [Int] = []
         var x: CGFloat = 0
+        var currentRow = 0
 
         for word in script.words {
             let wordWidth = (word.text as NSString).size(withAttributes: [.font: font]).width
             if x + wordWidth > availableWidth && x > 0 {
-                starts.append(word.id)
-                x = wordWidth + spacing
+                currentRow += 1
+                let y = CGFloat(currentRow) * (lineHeight + vSpacing)
+                rowY.append(y)
+                x = wordWidth + hSpacing
             } else {
-                x += wordWidth + spacing
+                x += wordWidth + hSpacing
             }
+            wordToRow.append(currentRow)
         }
-        rowStartIndices = starts
-    }
 
-    /// Find which row a word index belongs to.
-    private func rowForWord(_ index: Int) -> Int {
-        // Binary search for the last row start <= index
-        var lo = 0, hi = rowStartIndices.count - 1
-        while lo < hi {
-            let mid = (lo + hi + 1) / 2
-            if rowStartIndices[mid] <= index {
-                lo = mid
-            } else {
-                hi = mid - 1
-            }
-        }
-        return lo
+        rowYOffsets = rowY
+        wordRowMap = wordToRow
+        scrollOffset = 0
+        lastRow = 0
     }
 }
 
