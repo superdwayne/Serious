@@ -1,21 +1,23 @@
 import SwiftUI
+import AppKit
 
 struct ScriptTextView: View {
     let script: Script
     @Environment(AppSettings.self) private var settings
     @Environment(TeleprompterViewModel.self) private var viewModel
-    @State private var wordRows: [Int: CGFloat] = [:]
-    @State private var lastScrolledRow: CGFloat = -1
+
+    /// First word index on each visual row. Computed once per script/settings change.
+    @State private var rowStartIndices: [Int] = []
+    @State private var lastScrolledRow: Int = -1
 
     var body: some View {
         let currentIndex = viewModel.scrollState.currentWordIndex
 
         ScrollViewReader { proxy in
             ScrollView(.vertical, showsIndicators: false) {
-                RowTrackingFlowLayout(
+                FlowLayout(
                     horizontalSpacing: settings.fontSize * 0.35,
-                    verticalSpacing: settings.fontSize * 0.5,
-                    wordRows: $wordRows
+                    verticalSpacing: settings.fontSize * 0.5
                 ) {
                     ForEach(script.words) { word in
                         Text(word.text)
@@ -32,24 +34,60 @@ struct ScriptTextView: View {
             .scrollDisabled(true)
             .onChange(of: currentIndex) { _, newIndex in
                 guard !viewModel.scrollState.isPaused else { return }
-                let currentRow = wordRows[newIndex] ?? -1
-                // Only scroll when the word is on a different row
-                if currentRow != lastScrolledRow {
-                    lastScrolledRow = currentRow
-                    withAnimation(.easeOut(duration: 0.6)) {
+                let row = rowForWord(newIndex)
+                if row != lastScrolledRow {
+                    lastScrolledRow = row
+                    withAnimation(.easeOut(duration: 0.5)) {
                         proxy.scrollTo(newIndex, anchor: UnitPoint(x: 0.5, y: 0.1))
                     }
                 }
             }
         }
+        .onAppear { computeRows() }
+        .onChange(of: settings.fontSize) { _, _ in computeRows() }
+        .onChange(of: settings.windowWidth) { _, _ in computeRows() }
+    }
+
+    /// Pre-compute which word starts each visual row based on font metrics.
+    private func computeRows() {
+        let font = NSFont.monospacedSystemFont(ofSize: settings.fontSize, weight: .medium)
+        let availableWidth = settings.windowWidth - 16 // horizontal padding
+        let spacing = settings.fontSize * 0.35
+
+        var starts: [Int] = [0]
+        var x: CGFloat = 0
+
+        for word in script.words {
+            let wordWidth = (word.text as NSString).size(withAttributes: [.font: font]).width
+            if x + wordWidth > availableWidth && x > 0 {
+                starts.append(word.id)
+                x = wordWidth + spacing
+            } else {
+                x += wordWidth + spacing
+            }
+        }
+        rowStartIndices = starts
+    }
+
+    /// Find which row a word index belongs to.
+    private func rowForWord(_ index: Int) -> Int {
+        // Binary search for the last row start <= index
+        var lo = 0, hi = rowStartIndices.count - 1
+        while lo < hi {
+            let mid = (lo + hi + 1) / 2
+            if rowStartIndices[mid] <= index {
+                lo = mid
+            } else {
+                hi = mid - 1
+            }
+        }
+        return lo
     }
 }
 
-/// FlowLayout that reports each word's row Y position back via binding.
-private struct RowTrackingFlowLayout: Layout {
+private struct FlowLayout: Layout {
     var horizontalSpacing: CGFloat
     var verticalSpacing: CGFloat
-    @Binding var wordRows: [Int: CGFloat]
 
     struct CachedLayout {
         var positions: [CGPoint]
@@ -68,16 +106,6 @@ private struct RowTrackingFlowLayout: Layout {
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout CachedLayout?) {
         let layout = cache ?? arrange(width: bounds.width, subviews: subviews)
-
-        // Update row mapping
-        var rows: [Int: CGFloat] = [:]
-        for (index, position) in layout.positions.enumerated() {
-            rows[index] = position.y
-        }
-        DispatchQueue.main.async {
-            self.wordRows = rows
-        }
-
         for (index, position) in layout.positions.enumerated() {
             guard index < subviews.count else { break }
             subviews[index].place(
