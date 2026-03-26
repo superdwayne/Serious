@@ -4,32 +4,56 @@ struct ScriptTextView: View {
     let script: Script
     @Environment(AppSettings.self) private var settings
     @Environment(TeleprompterViewModel.self) private var viewModel
+    @State private var wordYPositions: [Int: CGFloat] = [:]
+    @State private var scrollOffset: CGFloat = 0
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.vertical, showsIndicators: false) {
-                let currentIndex = viewModel.scrollState.currentWordIndex
-                FlowLayout(horizontalSpacing: settings.fontSize * 0.3, verticalSpacing: settings.fontSize * 0.4) {
-                    ForEach(script.words) { word in
-                        Text(word.text)
-                            .font(.system(size: settings.fontSize, weight: .regular))
-                            .foregroundColor(word.id <= currentIndex ? settings.readColor : settings.upcomingColor)
-                            .id("word-\(word.id)")
-                    }
-                }
-                .padding(.horizontal, 12)
-                .padding(.top, 8)
-                // Extra bottom padding so text can scroll past the visible area
-                .padding(.bottom, 250)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .onChange(of: viewModel.scrollState.currentWordIndex) { _, newIndex in
-                guard !viewModel.scrollState.isPaused else { return }
-                withAnimation(.linear(duration: 0.8)) {
-                    proxy.scrollTo("word-\(newIndex)", anchor: .top)
+        let currentIndex = viewModel.scrollState.currentWordIndex
+
+        GeometryReader { _ in
+            FlowLayout(horizontalSpacing: settings.fontSize * 0.3, verticalSpacing: settings.fontSize * 0.4) {
+                ForEach(script.words) { word in
+                    Text(word.text)
+                        .font(.system(size: settings.fontSize, weight: .regular))
+                        .foregroundColor(word.id <= currentIndex ? settings.readColor : settings.upcomingColor)
+                        .background(
+                            GeometryReader { geo in
+                                Color.clear.anchorPreference(key: WordYPreference.self, value: .top) { anchor in
+                                    [word.id: geo[anchor].y]
+                                }
+                            }
+                        )
                 }
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .offset(y: -scrollOffset)
         }
+        .clipped()
+        .onPreferenceChange(WordYPreference.self) { positions in
+            wordYPositions = positions
+        }
+        .onChange(of: currentIndex) { _, newIndex in
+            guard !viewModel.scrollState.isPaused else { return }
+            updateOffset(for: newIndex)
+        }
+    }
+
+    private func updateOffset(for index: Int) {
+        guard let targetY = wordYPositions[index] else { return }
+        // Keep a small top margin so the current line isn't flush with the edge
+        let offset = max(0, targetY - 8)
+        withAnimation(.smooth(duration: 1.2)) {
+            scrollOffset = offset
+        }
+    }
+}
+
+private struct WordYPreference: PreferenceKey {
+    nonisolated(unsafe) static var defaultValue: [Int: CGFloat] = [:]
+    static func reduce(value: inout [Int: CGFloat], nextValue: () -> [Int: CGFloat]) {
+        value.merge(nextValue()) { _, new in new }
     }
 }
 

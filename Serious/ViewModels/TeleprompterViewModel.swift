@@ -54,15 +54,16 @@ final class TeleprompterViewModel {
         // Stop any previous session fully before starting a new one
         stopTracking()
 
-        trackingTask = Task {
+        trackingTask = Task { [weak self] in
+            guard let self else { return }
             do {
-                try await performTracking()
+                try await self.performTracking()
             } catch is CancellationError {
                 // Normal cancellation, no error to show
             } catch {
-                if !Task.isCancelled && isTracking {
-                    trackingError = "Voice tracking failed: \(error.localizedDescription)"
-                    isTracking = false
+                if !Task.isCancelled && self.isTracking {
+                    self.trackingError = "Voice tracking failed: \(error.localizedDescription)"
+                    self.isTracking = false
                 }
             }
         }
@@ -145,9 +146,9 @@ final class TeleprompterViewModel {
         silenceTimer = nil
         scrollState.isScrolling = false
 
-        Task {
-            await speechService?.stopTranscription()
-            speechService = nil
+        Task { [weak self] in
+            await self?.speechService?.stopTranscription()
+            self?.speechService = nil
         }
     }
 
@@ -155,15 +156,15 @@ final class TeleprompterViewModel {
         silenceTimer?.cancel()
         let timeout = settings?.silenceTimeout ?? Constants.defaultSilenceTimeout
 
-        silenceTimer = Task {
+        silenceTimer = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(500))
-                guard !Task.isCancelled else { break }
+                guard !Task.isCancelled, let self else { break }
 
-                if let lastTime = lastTranscriptionTime,
+                if let lastTime = self.lastTranscriptionTime,
                    Date().timeIntervalSince(lastTime) > timeout {
-                    if !scrollState.isPaused {
-                        scrollState.isPaused = true
+                    if !self.scrollState.isPaused {
+                        self.scrollState.isPaused = true
                     }
                 }
             }

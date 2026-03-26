@@ -190,17 +190,17 @@ final class ModernSpeechService: SpeechServiceProtocol, @unchecked Sendable {
 
     func startTranscription(locale: String) -> AsyncStream<TranscriptionResult> {
         AsyncStream { continuation in
-            analyzerTask = Task {
+            analyzerTask = Task { [weak self] in
                 do {
                     let transcriber = SpeechTranscriber(
                         locale: Locale(identifier: locale),
                         preset: .progressiveTranscription
                     )
                     let analyzer = SpeechAnalyzer(modules: [transcriber])
-                    self.analyzer = analyzer
+                    self?.analyzer = analyzer
 
                     let engine = AVAudioEngine()
-                    self.audioEngine = engine
+                    self?.audioEngine = engine
                     let inputNode = engine.inputNode
                     let format = inputNode.outputFormat(forBus: 0)
 
@@ -231,10 +231,10 @@ final class ModernSpeechService: SpeechServiceProtocol, @unchecked Sendable {
                         continuation.yield(transcriptionResult)
                     }
                 } catch {
-                    self.queue.async {
-                        self.audioEngine?.inputNode.removeTap(onBus: 0)
-                        self.audioEngine?.stop()
-                        self.audioEngine = nil
+                    self?.queue.async { [weak self] in
+                        self?.audioEngine?.inputNode.removeTap(onBus: 0)
+                        self?.audioEngine?.stop()
+                        self?.audioEngine = nil
                     }
                 }
                 continuation.finish()
@@ -265,20 +265,14 @@ final class ModernSpeechService: SpeechServiceProtocol, @unchecked Sendable {
 enum SpeechServiceFactory {
     static func create(locale: String) async -> any SpeechServiceProtocol {
         // Try modern SpeechAnalyzer API on macOS 26+
-        if #available(macOS 26.0, *) {
-            do {
-                if SpeechTranscriber.isAvailable {
-                    let transcriber = SpeechTranscriber(
-                        locale: Locale(identifier: locale),
-                        preset: .progressiveTranscription
-                    )
-                    let status = await AssetInventory.status(forModules: [transcriber])
-                    if status >= .installed {
-                        return ModernSpeechService()
-                    }
-                }
-            } catch {
-                // Modern API unavailable, fall through to legacy
+        if #available(macOS 26.0, *), SpeechTranscriber.isAvailable {
+            let transcriber = SpeechTranscriber(
+                locale: Locale(identifier: locale),
+                preset: .progressiveTranscription
+            )
+            let status = await AssetInventory.status(forModules: [transcriber])
+            if status >= .installed {
+                return ModernSpeechService()
             }
         }
         return LegacySpeechService()

@@ -6,15 +6,22 @@ final class NotchDetector {
     var hasNotch: Bool = false
     var cameraPosition: CGPoint = .zero
     var windowOrigin: CGPoint = .zero
+    private var observer: NSObjectProtocol?
 
     init() {
         updateScreenInfo()
-        NotificationCenter.default.addObserver(
+        observer = NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
             self?.updateScreenInfo()
+        }
+    }
+
+    deinit {
+        if let observer {
+            NotificationCenter.default.removeObserver(observer)
         }
     }
 
