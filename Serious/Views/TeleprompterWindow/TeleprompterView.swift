@@ -10,21 +10,32 @@ struct TeleprompterView: View {
                 .fill(.black)
 
             if let script = viewModel.currentScript {
-                ScriptTextView(script: script)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    // Fade out at bottom edge
-                    .mask(
-                        VStack(spacing: 0) {
-                            Color.white
-                            LinearGradient(
-                                colors: [.white, .clear],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                            .frame(height: 40)
-                        }
-                    )
+                VStack(spacing: 0) {
+                    ScriptTextView(script: script)
+                        .mask(
+                            VStack(spacing: 0) {
+                                Color.white
+                                LinearGradient(
+                                    colors: [.white, .clear],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                                .frame(height: 40)
+                            }
+                        )
+
+                    // Status / error bar
+                    if let error = viewModel.trackingError {
+                        Text(error)
+                            .font(.system(size: 9))
+                            .foregroundStyle(.red.opacity(0.8))
+                            .lineLimit(1)
+                            .padding(.horizontal, 8)
+                            .padding(.bottom, 4)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
             } else {
                 VStack(spacing: 8) {
                     Text("No script loaded")

@@ -67,16 +67,15 @@ final class TeleprompterViewModel {
         // Stop any previous session fully before starting a new one
         stopTracking()
 
-        trackingTask = Task { [weak self] in
-            guard let self else { return }
+        trackingTask = Task {
             do {
-                try await self.performTracking()
+                try await performTracking()
             } catch is CancellationError {
-                // Normal cancellation, no error to show
+                // Normal cancellation
             } catch {
-                if !Task.isCancelled && self.isTracking {
-                    self.trackingError = "Voice tracking failed: \(error.localizedDescription)"
-                    self.isTracking = false
+                if !Task.isCancelled && isTracking {
+                    trackingError = "Voice tracking failed: \(error.localizedDescription)"
+                    isTracking = false
                 }
             }
         }
@@ -114,7 +113,7 @@ final class TeleprompterViewModel {
             return
         }
 
-        // Ensure any previous speech service is fully stopped
+        // Wait for any previous speech service to fully stop before creating a new one
         if let existingService = speechService {
             await existingService.stopTranscription()
             speechService = nil
@@ -122,11 +121,13 @@ final class TeleprompterViewModel {
 
         let locale = settings?.speechLocale ?? "en-US"
         let service = await SpeechServiceFactory.create(locale: locale)
-        self.speechService = service
+        guard !Task.isCancelled else { return }
+        speechService = service
 
         let stream = service.startTranscription(locale: locale)
         scrollState.isPaused = false
         scrollState.isScrolling = true
+        lastTranscriptionTime = Date()
         startSilenceMonitor()
 
         var receivedAnyResult = false
@@ -153,12 +154,15 @@ final class TeleprompterViewModel {
     }
 
     private func stopTracking() {
-        trackingTask?.cancel()
+        let taskToCancel = trackingTask
         trackingTask = nil
+        taskToCancel?.cancel()
+
         silenceTimer?.cancel()
         silenceTimer = nil
         lastTranscriptionTime = nil
         scrollState.isScrolling = false
+        scrollState.isPaused = true
 
         let service = speechService
         speechService = nil
@@ -171,15 +175,15 @@ final class TeleprompterViewModel {
         silenceTimer?.cancel()
         let timeout = settings?.silenceTimeout ?? Constants.defaultSilenceTimeout
 
-        silenceTimer = Task { [weak self] in
+        silenceTimer = Task {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(500))
-                guard !Task.isCancelled, let self else { break }
+                guard !Task.isCancelled else { break }
 
-                if let lastTime = self.lastTranscriptionTime,
+                if let lastTime = lastTranscriptionTime,
                    Date().timeIntervalSince(lastTime) > timeout {
-                    if !self.scrollState.isPaused {
-                        self.scrollState.isPaused = true
+                    if !scrollState.isPaused {
+                        scrollState.isPaused = true
                     }
                 }
             }
