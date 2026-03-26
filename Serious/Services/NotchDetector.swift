@@ -34,9 +34,10 @@ final class NotchDetector {
         let topY: CGFloat
 
         if screen.hasNotch {
-            topY = screen.frame.maxY - screen.safeAreaInsets.top - Constants.defaultWindowHeight - 4
+            // Flush against the bottom of the menu bar — no gap
+            topY = screen.frame.maxY - screen.safeAreaInsets.top - Constants.defaultWindowHeight
         } else {
-            topY = screen.frame.maxY - Constants.menuBarTopOffset - Constants.defaultWindowHeight - 4
+            topY = screen.frame.maxY - Constants.menuBarTopOffset - Constants.defaultWindowHeight
         }
 
         windowOrigin = CGPoint(x: centerX, y: topY)

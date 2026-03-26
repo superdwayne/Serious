@@ -6,8 +6,24 @@ struct TeleprompterView: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: Constants.windowCornerRadius)
-                .fill(.black.opacity(settings.windowOpacity))
+            // Flat top to blend with menu bar, curved bottom for natural feel
+            UnevenRoundedRectangle(
+                topLeadingRadius: 0,
+                bottomLeadingRadius: Constants.windowCornerRadius,
+                bottomTrailingRadius: Constants.windowCornerRadius,
+                topTrailingRadius: 0
+            )
+            .fill(.ultraThinMaterial)
+            .environment(\.colorScheme, .dark)
+            .overlay(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 0,
+                    bottomLeadingRadius: Constants.windowCornerRadius,
+                    bottomTrailingRadius: Constants.windowCornerRadius,
+                    topTrailingRadius: 0
+                )
+                .fill(.black.opacity(settings.windowOpacity * 0.6))
+            )
 
             if let script = viewModel.currentScript {
                 VStack(spacing: 0) {
@@ -15,7 +31,9 @@ struct TeleprompterView: View {
                     ScriptTextView(script: script)
                     ScrollIndicatorView(progress: viewModel.scrollState.progress)
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.top, 6)
+                .padding(.bottom)
             } else {
                 VStack(spacing: 12) {
                     Image(systemName: "text.scroll")
@@ -37,6 +55,14 @@ struct TeleprompterView: View {
             }
         }
         .frame(width: settings.windowWidth, height: Constants.defaultWindowHeight)
+        .clipShape(
+            UnevenRoundedRectangle(
+                topLeadingRadius: 0,
+                bottomLeadingRadius: Constants.windowCornerRadius,
+                bottomTrailingRadius: Constants.windowCornerRadius,
+                topTrailingRadius: 0
+            )
+        )
         .background(WindowAccessor())
     }
 
