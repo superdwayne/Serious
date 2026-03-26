@@ -1,9 +1,9 @@
 import Foundation
 
 enum Constants {
-    static let defaultWindowWidth: CGFloat = 600
-    static let defaultWindowHeight: CGFloat = 180
-    static let windowCornerRadius: CGFloat = 18
+    static let defaultWindowWidth: CGFloat = 520
+    static let defaultWindowHeight: CGFloat = 120
+    static let windowCornerRadius: CGFloat = 22
     static let windowBackgroundOpacity: Double = 0.85
     static let menuBarTopOffset: CGFloat = 28
 

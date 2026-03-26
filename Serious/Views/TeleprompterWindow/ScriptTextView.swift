@@ -11,18 +11,18 @@ struct ScriptTextView: View {
 
         ScrollViewReader { proxy in
             ScrollView(.vertical, showsIndicators: false) {
-                FlowLayout(horizontalSpacing: settings.fontSize * 0.3, verticalSpacing: settings.fontSize * 0.4) {
+                FlowLayout(horizontalSpacing: settings.fontSize * 0.35, verticalSpacing: settings.fontSize * 0.5) {
                     ForEach(script.words) { word in
                         Text(word.text)
-                            .font(.system(size: settings.fontSize, weight: .regular))
-                            .foregroundColor(word.id <= currentIndex ? settings.readColor : settings.upcomingColor)
+                            .font(.system(size: settings.fontSize, weight: .medium, design: .monospaced))
+                            .foregroundColor(.white.opacity(0.9))
                             .id(word.id)
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.top, 8)
-                .padding(.bottom, 400)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 8)
+                .padding(.top, 4)
+                .padding(.bottom, 300)
+                .frame(maxWidth: .infinity, alignment: .center)
             }
             .scrollDisabled(true)
             .onChange(of: currentIndex) { oldIndex, newIndex in

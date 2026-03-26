@@ -6,95 +6,38 @@ struct TeleprompterView: View {
 
     var body: some View {
         ZStack {
-            // Flat top to blend with menu bar, curved bottom for natural feel
-            UnevenRoundedRectangle(
-                topLeadingRadius: 0,
-                bottomLeadingRadius: Constants.windowCornerRadius,
-                bottomTrailingRadius: Constants.windowCornerRadius,
-                topTrailingRadius: 0
-            )
-            .fill(.ultraThinMaterial)
-            .environment(\.colorScheme, .dark)
-            .overlay(
-                UnevenRoundedRectangle(
-                    topLeadingRadius: 0,
-                    bottomLeadingRadius: Constants.windowCornerRadius,
-                    bottomTrailingRadius: Constants.windowCornerRadius,
-                    topTrailingRadius: 0
-                )
-                .fill(.black.opacity(settings.windowOpacity * 0.6))
-            )
+            RoundedRectangle(cornerRadius: Constants.windowCornerRadius)
+                .fill(.black)
 
             if let script = viewModel.currentScript {
-                VStack(spacing: 0) {
-                    trackingIndicator
-                    ScriptTextView(script: script)
-                    ScrollIndicatorView(progress: viewModel.scrollState.progress)
-                }
-                .padding(.horizontal)
-                .padding(.top, 6)
-                .padding(.bottom)
+                ScriptTextView(script: script)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    // Fade out at bottom edge
+                    .mask(
+                        VStack(spacing: 0) {
+                            Color.white
+                            LinearGradient(
+                                colors: [.white, .clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .frame(height: 40)
+                        }
+                    )
             } else {
-                VStack(spacing: 12) {
-                    Image(systemName: "text.scroll")
-                        .font(.system(size: 32))
-                        .foregroundStyle(.white.opacity(0.8))
+                VStack(spacing: 8) {
                     Text("No script loaded")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.8))
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
                     Text("Open the menu bar to load a script")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.5))
-                    Button("Load Sample Script") {
-                        viewModel.loadSampleScript()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
-                    .padding(.top, 4)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.4))
                 }
             }
         }
         .frame(width: settings.windowWidth, height: Constants.defaultWindowHeight)
-        .clipShape(
-            UnevenRoundedRectangle(
-                topLeadingRadius: 0,
-                bottomLeadingRadius: Constants.windowCornerRadius,
-                bottomTrailingRadius: Constants.windowCornerRadius,
-                topTrailingRadius: 0
-            )
-        )
+        .clipShape(RoundedRectangle(cornerRadius: Constants.windowCornerRadius))
         .background(WindowAccessor())
-    }
-
-    @ViewBuilder
-    private var trackingIndicator: some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(indicatorColor)
-                .frame(width: 7, height: 7)
-            Text(indicatorLabel)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.white.opacity(0.5))
-            Spacer()
-            if let error = viewModel.trackingError {
-                Text(error)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.red.opacity(0.8))
-                    .lineLimit(1)
-            }
-        }
-        .padding(.bottom, 4)
-    }
-
-    private var indicatorColor: Color {
-        if !viewModel.isTracking { return .gray.opacity(0.5) }
-        if viewModel.scrollState.isPaused { return .orange }
-        return .green
-    }
-
-    private var indicatorLabel: String {
-        if !viewModel.isTracking { return "Idle" }
-        if viewModel.scrollState.isPaused { return "Paused" }
-        return "Tracking"
     }
 }
