@@ -33,7 +33,7 @@ final class AppSettings {
 
     init() {
         let defaults = UserDefaults.standard
-        self.fontSize = defaults.object(forKey: "fontSize") as? CGFloat ?? 28
+        self.fontSize = defaults.object(forKey: "fontSize") as? CGFloat ?? 18
         self.scrollSpeed = defaults.object(forKey: "scrollSpeed") as? Double ?? 1.0
         self.windowOpacity = defaults.object(forKey: "windowOpacity") as? Double ?? 0.85
         self.windowWidth = defaults.object(forKey: "windowWidth") as? CGFloat ?? 600

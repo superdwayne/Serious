@@ -4,14 +4,19 @@ struct ScriptTextView: View {
     let script: Script
     @Environment(AppSettings.self) private var settings
     @Environment(TeleprompterViewModel.self) private var viewModel
-    @State private var scrollTarget: Int?
+    @State private var wordRows: [Int: CGFloat] = [:]
+    @State private var lastScrolledRow: CGFloat = -1
 
     var body: some View {
         let currentIndex = viewModel.scrollState.currentWordIndex
 
         ScrollViewReader { proxy in
             ScrollView(.vertical, showsIndicators: false) {
-                FlowLayout(horizontalSpacing: settings.fontSize * 0.35, verticalSpacing: settings.fontSize * 0.5) {
+                RowTrackingFlowLayout(
+                    horizontalSpacing: settings.fontSize * 0.35,
+                    verticalSpacing: settings.fontSize * 0.5,
+                    wordRows: $wordRows
+                ) {
                     ForEach(script.words) { word in
                         Text(word.text)
                             .font(.system(size: settings.fontSize, weight: .medium, design: .monospaced))
@@ -25,18 +30,14 @@ struct ScriptTextView: View {
                 .frame(maxWidth: .infinity, alignment: .center)
             }
             .scrollDisabled(true)
-            .onChange(of: currentIndex) { oldIndex, newIndex in
+            .onChange(of: currentIndex) { _, newIndex in
                 guard !viewModel.scrollState.isPaused else { return }
-                // Only scroll when we move to a new line (reduces jitter from
-                // same-line word changes). Approximate by checking if the jump
-                // crosses roughly a line's worth of words.
-                let wordsPerLine = max(1, Int(settings.windowWidth / (settings.fontSize * 4)))
-                let oldLine = oldIndex / wordsPerLine
-                let newLine = newIndex / wordsPerLine
-                if oldLine != newLine || scrollTarget == nil {
-                    scrollTarget = newIndex
-                    withAnimation(.interpolatingSpring(stiffness: 40, damping: 15)) {
-                        proxy.scrollTo(newIndex, anchor: UnitPoint(x: 0.5, y: 0.15))
+                let currentRow = wordRows[newIndex] ?? -1
+                // Only scroll when the word is on a different row
+                if currentRow != lastScrolledRow {
+                    lastScrolledRow = currentRow
+                    withAnimation(.easeOut(duration: 0.6)) {
+                        proxy.scrollTo(newIndex, anchor: UnitPoint(x: 0.5, y: 0.1))
                     }
                 }
             }
@@ -44,9 +45,11 @@ struct ScriptTextView: View {
     }
 }
 
-private struct FlowLayout: Layout {
+/// FlowLayout that reports each word's row Y position back via binding.
+private struct RowTrackingFlowLayout: Layout {
     var horizontalSpacing: CGFloat
     var verticalSpacing: CGFloat
+    @Binding var wordRows: [Int: CGFloat]
 
     struct CachedLayout {
         var positions: [CGPoint]
@@ -65,6 +68,16 @@ private struct FlowLayout: Layout {
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout CachedLayout?) {
         let layout = cache ?? arrange(width: bounds.width, subviews: subviews)
+
+        // Update row mapping
+        var rows: [Int: CGFloat] = [:]
+        for (index, position) in layout.positions.enumerated() {
+            rows[index] = position.y
+        }
+        DispatchQueue.main.async {
+            self.wordRows = rows
+        }
+
         for (index, position) in layout.positions.enumerated() {
             guard index < subviews.count else { break }
             subviews[index].place(
