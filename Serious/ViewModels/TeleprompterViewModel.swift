@@ -31,9 +31,19 @@ final class TeleprompterViewModel {
     }
 
     func loadScript(_ script: Script) {
+        // Fully stop any active tracking before swapping the script
+        if isTracking {
+            isTracking = false
+        }
+
+        // Clear old state
+        currentScript = nil
+        scrollState.reset()
+        scrollState.totalWords = 0
+
+        // Load new script
         currentScript = script
         scrollState.totalWords = script.wordCount
-        scrollState.reset()
         wordMatcher.configure(
             script: script,
             sensitivity: settings?.matchSensitivity ?? Constants.defaultMatchThreshold
@@ -41,8 +51,13 @@ final class TeleprompterViewModel {
     }
 
     func resetToBeginning() {
+        if isTracking {
+            isTracking = false
+        }
         scrollState.reset()
         wordMatcher.reset()
+        lastTranscriptionTime = nil
+        trackingError = nil
     }
 
     private func startTracking() {
@@ -144,11 +159,13 @@ final class TeleprompterViewModel {
         trackingTask = nil
         silenceTimer?.cancel()
         silenceTimer = nil
+        lastTranscriptionTime = nil
         scrollState.isScrolling = false
 
-        Task { [weak self] in
-            await self?.speechService?.stopTranscription()
-            self?.speechService = nil
+        let service = speechService
+        speechService = nil
+        if let service {
+            Task { await service.stopTranscription() }
         }
     }
 

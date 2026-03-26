@@ -35,6 +35,7 @@ struct ScriptTextView: View {
         }
         .clipped()
         .onAppear { computeLayout() }
+        .onChange(of: script.id) { _, _ in computeLayout() }
         .onChange(of: settings.fontSize) { _, _ in computeLayout() }
         .onChange(of: settings.windowWidth) { _, _ in computeLayout() }
         .onChange(of: currentIndex) { _, newIndex in
