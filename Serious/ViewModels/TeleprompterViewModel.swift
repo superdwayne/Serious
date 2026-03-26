@@ -113,14 +113,8 @@ final class TeleprompterViewModel {
             return
         }
 
-        // Wait for any previous speech service to fully stop before creating a new one
-        if let existingService = speechService {
-            await existingService.stopTranscription()
-            speechService = nil
-        }
-
         let locale = settings?.speechLocale ?? "en-US"
-        let service = await SpeechServiceFactory.create(locale: locale)
+        let service = SpeechServiceFactory.create(locale: locale)
         guard !Task.isCancelled else { return }
         speechService = service
 

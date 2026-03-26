@@ -263,18 +263,7 @@ final class ModernSpeechService: SpeechServiceProtocol, @unchecked Sendable {
 }
 
 enum SpeechServiceFactory {
-    static func create(locale: String) async -> any SpeechServiceProtocol {
-        // Try modern SpeechAnalyzer API on macOS 26+
-        if #available(macOS 26.0, *), SpeechTranscriber.isAvailable {
-            let transcriber = SpeechTranscriber(
-                locale: Locale(identifier: locale),
-                preset: .progressiveTranscription
-            )
-            let status = await AssetInventory.status(forModules: [transcriber])
-            if status >= .installed {
-                return ModernSpeechService()
-            }
-        }
-        return LegacySpeechService()
+    static func create(locale: String) -> any SpeechServiceProtocol {
+        LegacySpeechService()
     }
 }
