@@ -51,68 +51,90 @@ final class TeleprompterViewModel {
             return
         }
 
+        // Stop any previous session fully before starting a new one
+        stopTracking()
+
         trackingTask = Task {
-            let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
-            if micStatus == .notDetermined {
-                let granted = await AVCaptureDevice.requestAccess(for: .audio)
-                guard granted else {
-                    trackingError = "Microphone access denied"
+            do {
+                try await performTracking()
+            } catch is CancellationError {
+                // Normal cancellation, no error to show
+            } catch {
+                if !Task.isCancelled && isTracking {
+                    trackingError = "Voice tracking failed: \(error.localizedDescription)"
                     isTracking = false
-                    return
                 }
-            } else if micStatus != .authorized {
-                trackingError = "Microphone access required — check System Settings"
+            }
+        }
+    }
+
+    private func performTracking() async throws {
+        let micStatus = AVCaptureDevice.authorizationStatus(for: .audio)
+        if micStatus == .notDetermined {
+            let granted = await AVCaptureDevice.requestAccess(for: .audio)
+            guard granted else {
+                trackingError = "Microphone access denied"
                 isTracking = false
                 return
             }
+        } else if micStatus != .authorized {
+            trackingError = "Microphone access required — check System Settings"
+            isTracking = false
+            return
+        }
 
-            var speechStatus = SFSpeechRecognizer.authorizationStatus()
-            if speechStatus == .notDetermined {
-                let granted = await Task.detached {
-                    await withCheckedContinuation { (cont: CheckedContinuation<Bool, Never>) in
-                        SFSpeechRecognizer.requestAuthorization { status in
-                            cont.resume(returning: status == .authorized)
-                        }
+        var speechStatus = SFSpeechRecognizer.authorizationStatus()
+        if speechStatus == .notDetermined {
+            let granted = await Task.detached {
+                await withCheckedContinuation { (cont: CheckedContinuation<Bool, Never>) in
+                    SFSpeechRecognizer.requestAuthorization { status in
+                        cont.resume(returning: status == .authorized)
                     }
-                }.value
-                speechStatus = granted ? .authorized : .denied
-            }
-            guard speechStatus == .authorized else {
-                trackingError = "Speech recognition denied — check System Settings"
-                isTracking = false
-                return
-            }
-
-            let locale = settings?.speechLocale ?? "en-US"
-            let service = await SpeechServiceFactory.create(locale: locale)
-            self.speechService = service
-
-            let stream = service.startTranscription(locale: locale)
-            scrollState.isPaused = false
-            scrollState.isScrolling = true
-            startSilenceMonitor()
-
-            var receivedAnyResult = false
-            for await result in stream {
-                guard !Task.isCancelled else { break }
-                receivedAnyResult = true
-                lastTranscriptionTime = Date()
-
-                if scrollState.isPaused {
-                    scrollState.isPaused = false
                 }
+            }.value
+            speechStatus = granted ? .authorized : .denied
+        }
+        guard speechStatus == .authorized else {
+            trackingError = "Speech recognition denied — check System Settings"
+            isTracking = false
+            return
+        }
 
-                if let newIndex = wordMatcher.processTranscription(result) {
-                    scrollState.advanceTo(newIndex)
-                }
+        // Ensure any previous speech service is fully stopped
+        if let existingService = speechService {
+            await existingService.stopTranscription()
+            speechService = nil
+        }
+
+        let locale = settings?.speechLocale ?? "en-US"
+        let service = await SpeechServiceFactory.create(locale: locale)
+        self.speechService = service
+
+        let stream = service.startTranscription(locale: locale)
+        scrollState.isPaused = false
+        scrollState.isScrolling = true
+        startSilenceMonitor()
+
+        var receivedAnyResult = false
+        for await result in stream {
+            try Task.checkCancellation()
+            receivedAnyResult = true
+            lastTranscriptionTime = Date()
+
+            if scrollState.isPaused {
+                scrollState.isPaused = false
             }
 
-            if !Task.isCancelled && isTracking {
-                trackingError = receivedAnyResult
-                    ? "Voice tracking session ended — restarting may help"
-                    : "Could not start speech recognition — check microphone access"
-                isTracking = false
+            if let newIndex = wordMatcher.processTranscription(result) {
+                scrollState.advanceTo(newIndex)
             }
+        }
+
+        if !Task.isCancelled && isTracking {
+            trackingError = receivedAnyResult
+                ? "Voice tracking session ended — restarting may help"
+                : "Could not start speech recognition — check microphone access"
+            isTracking = false
         }
     }
 

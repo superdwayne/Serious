@@ -41,10 +41,11 @@ final class WordMatcher {
             }
         }
 
-        // ── 2) Single-word fallback with tighter window + forward bias ──
+        // ── 2) Single-word fallback with forward-biased window ──
         if bestMatchIndex == nil {
             let lastSpoken = spokenWords.last!
             let tightEnd = min(scriptWords.count - 1, currentPosition + Constants.maxStepForward)
+            let singleWordThreshold = sensitivity + 0.05  // Slightly stricter for single words
 
             for i in windowStart...tightEnd {
                 let scriptWord = scriptWords[i].normalized
@@ -57,7 +58,7 @@ final class WordMatcher {
                     score *= 0.9
                 }
 
-                if score > bestScore && score >= sensitivity {
+                if score > bestScore && score >= singleWordThreshold {
                     bestScore = score
                     bestMatchIndex = i
                 }
@@ -67,8 +68,10 @@ final class WordMatcher {
         guard let matchIndex = bestMatchIndex else { return nil }
 
         // ── 3) Gate large jumps — require consecutive confirmations ──
+        // Only gate backwards jumps and very large forward jumps
         let jump = matchIndex - currentPosition
-        if abs(jump) > Constants.maxStepForward {
+        let needsConfirmation = jump < -1 || jump > Constants.maxStepForward * 2
+        if needsConfirmation {
             if candidatePosition == matchIndex {
                 candidateHits += 1
             } else {

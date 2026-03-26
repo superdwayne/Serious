@@ -8,12 +8,12 @@ enum Constants {
     static let menuBarTopOffset: CGFloat = 28
 
     static let searchWindowBack: Int = 3
-    static let searchWindowAhead: Int = 15
-    static let defaultMatchThreshold: Double = 0.7
+    static let searchWindowAhead: Int = 25
+    static let defaultMatchThreshold: Double = 0.65
     static let defaultSilenceTimeout: TimeInterval = 2.0
 
-    static let minWordsForMatch: Int = 2
-    static let maxStepForward: Int = 5
+    static let minWordsForMatch: Int = 1
+    static let maxStepForward: Int = 10
     static let confirmationsRequired: Int = 2
 
     static let sfSpeechSessionLimit: TimeInterval = 55

@@ -12,32 +12,23 @@ struct ScriptTextView: View {
                 FlowLayout(horizontalSpacing: settings.fontSize * 0.3, verticalSpacing: settings.fontSize * 0.4) {
                     ForEach(script.words) { word in
                         Text(word.text)
-                            .font(.system(size: settings.fontSize, weight: word.id == currentIndex ? .bold : .regular))
-                            .foregroundColor(colorForWord(at: word.id, currentIndex: currentIndex))
+                            .font(.system(size: settings.fontSize, weight: .regular))
+                            .foregroundColor(word.id <= currentIndex ? settings.readColor : settings.upcomingColor)
                             .id("word-\(word.id)")
                     }
                 }
                 .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.top, 8)
+                // Extra bottom padding so text can scroll past the visible area
+                .padding(.bottom, 250)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .onChange(of: viewModel.scrollState.currentWordIndex) { _, newIndex in
                 guard !viewModel.scrollState.isPaused else { return }
-                let duration = max(0.15, 0.3 / settings.scrollSpeed)
-                withAnimation(.easeInOut(duration: duration)) {
-                    proxy.scrollTo("word-\(newIndex)", anchor: .center)
+                withAnimation(.linear(duration: 0.8)) {
+                    proxy.scrollTo("word-\(newIndex)", anchor: .top)
                 }
             }
-        }
-    }
-
-    private func colorForWord(at index: Int, currentIndex: Int) -> Color {
-        if index == currentIndex {
-            return settings.highlightColor
-        } else if index < currentIndex {
-            return settings.readColor
-        } else {
-            return settings.upcomingColor
         }
     }
 }
