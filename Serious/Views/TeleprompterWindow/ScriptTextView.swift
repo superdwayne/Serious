@@ -38,13 +38,15 @@ struct ScriptTextView: View {
         .onChange(of: settings.fontSize) { _, _ in computeLayout() }
         .onChange(of: settings.windowWidth) { _, _ in computeLayout() }
         .onChange(of: currentIndex) { _, newIndex in
-            guard !viewModel.scrollState.isPaused else { return }
+            // Always allow reset to beginning (index 0), even when paused
+            let isReset = newIndex == 0
+            guard isReset || !viewModel.scrollState.isPaused else { return }
             guard newIndex < wordRowMap.count else { return }
             let row = wordRowMap[newIndex]
-            if row != lastRow {
+            if row != lastRow || isReset {
                 lastRow = row
                 let targetY = row < rowYOffsets.count ? rowYOffsets[row] : 0
-                withAnimation(.easeInOut(duration: 0.8)) {
+                withAnimation(isReset ? .easeOut(duration: 0.3) : .easeInOut(duration: 0.8)) {
                     scrollOffset = targetY
                 }
             }
