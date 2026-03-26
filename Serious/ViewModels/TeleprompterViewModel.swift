@@ -36,10 +36,8 @@ final class TeleprompterViewModel {
             isTracking = false
         }
 
-        // Clear old state
-        currentScript = nil
+        // Reset scroll and matcher state
         scrollState.reset()
-        scrollState.totalWords = 0
 
         // Load new script
         currentScript = script

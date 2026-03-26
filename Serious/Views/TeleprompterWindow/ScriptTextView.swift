@@ -39,11 +39,9 @@ struct ScriptTextView: View {
         .onChange(of: settings.fontSize) { _, _ in computeLayout() }
         .onChange(of: settings.windowWidth) { _, _ in computeLayout() }
         .onChange(of: currentIndex) { _, newIndex in
-            // Always allow reset to beginning (index 0), even when paused
-            let isReset = newIndex == 0
-            guard isReset || !viewModel.scrollState.isPaused else { return }
             guard newIndex < wordRowMap.count else { return }
             let row = wordRowMap[newIndex]
+            let isReset = newIndex == 0 && scrollOffset > 0
             if row != lastRow || isReset {
                 lastRow = row
                 let targetY = row < rowYOffsets.count ? rowYOffsets[row] : 0
