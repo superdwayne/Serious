@@ -2,11 +2,21 @@ import SwiftUI
 
 struct SpeechSettingsView: View {
     @Environment(AppSettings.self) private var settings
+    @State private var deviceManager = AudioDeviceManager()
 
     var body: some View {
         @Bindable var s = settings
 
         Form {
+            Section("Microphone") {
+                Picker("Input Device", selection: $s.audioInputDeviceUID) {
+                    Text("System Default").tag("")
+                    ForEach(deviceManager.inputDevices) { device in
+                        Text(device.name).tag(device.id)
+                    }
+                }
+            }
+
             Section("Recognition") {
                 Picker("Language", selection: $s.speechLocale) {
                     Text("English (US)").tag("en-US")

@@ -113,12 +113,19 @@ final class TeleprompterViewModel {
             return
         }
 
+        // Wait for any previous speech service to fully stop before creating a new one
+        if let existingService = speechService {
+            await existingService.stopTranscription()
+            speechService = nil
+        }
+
         let locale = settings?.speechLocale ?? "en-US"
-        let service = SpeechServiceFactory.create(locale: locale)
+        let deviceUID = settings?.audioInputDeviceUID
+        let service = await SpeechServiceFactory.create(locale: locale)
         guard !Task.isCancelled else { return }
         speechService = service
 
-        let stream = service.startTranscription(locale: locale)
+        let stream = service.startTranscription(locale: locale, deviceUID: deviceUID)
         scrollState.isPaused = false
         scrollState.isScrolling = true
         lastTranscriptionTime = Date()

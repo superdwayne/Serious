@@ -37,6 +37,7 @@
 		A10000028 /* ScriptEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000028 /* ScriptEditorView.swift */; };
 		A10000029 /* ScriptListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000029 /* ScriptListView.swift */; };
 		A10000030 /* ScriptEditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000030 /* ScriptEditorViewModel.swift */; };
+		A10000031 /* AudioDeviceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000033 /* AudioDeviceManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -72,6 +73,7 @@
 		A20000030 /* ScriptEditorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptEditorViewModel.swift; sourceTree = "<group>"; };
 		A20000031 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A20000032 /* Serious.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Serious.entitlements; sourceTree = "<group>"; };
+		A20000033 /* AudioDeviceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioDeviceManager.swift; sourceTree = "<group>"; };
 		A30000001 /* Serious.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Serious.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -126,6 +128,7 @@
 			children = (
 				A20000005 /* NotchDetector.swift */,
 				A20000014 /* AudioService.swift */,
+				A20000033 /* AudioDeviceManager.swift */,
 				A20000015 /* SpeechService.swift */,
 				A20000016 /* WordMatcher.swift */,
 			);
@@ -327,6 +330,7 @@
 				A10000028 /* ScriptEditorView.swift in Sources */,
 				A10000029 /* ScriptListView.swift in Sources */,
 				A10000030 /* ScriptEditorViewModel.swift in Sources */,
+				A10000031 /* AudioDeviceManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -16,7 +16,7 @@ struct TranscriptionResult: Sendable {
 }
 
 protocol SpeechServiceProtocol: Sendable {
-    func startTranscription(locale: String) -> AsyncStream<TranscriptionResult>
+    func startTranscription(locale: String, deviceUID: String?) -> AsyncStream<TranscriptionResult>
     func stopTranscription() async
 }
 
@@ -38,13 +38,13 @@ final class LegacySpeechService: SpeechServiceProtocol, @unchecked Sendable {
         }
     }
 
-    func startTranscription(locale: String) -> AsyncStream<TranscriptionResult> {
+    func startTranscription(locale: String, deviceUID: String? = nil) -> AsyncStream<TranscriptionResult> {
         AsyncStream { continuation in
             self.queue.async {
                 self.continuation = continuation
                 let loc = Locale(identifier: locale)
                 self.recognizer = SFSpeechRecognizer(locale: loc)
-                self.startAudioEngine()
+                self.startAudioEngine(deviceUID: deviceUID)
                 self.startRecognitionSession()
             }
 
@@ -56,11 +56,12 @@ final class LegacySpeechService: SpeechServiceProtocol, @unchecked Sendable {
     }
 
     /// Creates and starts AVAudioEngine once. Must be called on `queue`.
-    private func startAudioEngine() {
+    private func startAudioEngine(deviceUID: String? = nil) {
         dispatchPrecondition(condition: .onQueue(queue))
         guard audioEngine == nil else { return }
 
         let engine = AVAudioEngine()
+        AudioDeviceManager.configureInputDevice(uid: deviceUID, on: engine)
         let inputNode = engine.inputNode
         let format = inputNode.outputFormat(forBus: 0)
 
@@ -188,7 +189,7 @@ final class ModernSpeechService: SpeechServiceProtocol, @unchecked Sendable {
     private var analyzer: SpeechAnalyzer?
     private var audioEngine: AVAudioEngine?
 
-    func startTranscription(locale: String) -> AsyncStream<TranscriptionResult> {
+    func startTranscription(locale: String, deviceUID: String? = nil) -> AsyncStream<TranscriptionResult> {
         AsyncStream { continuation in
             analyzerTask = Task { [weak self] in
                 do {
@@ -200,6 +201,7 @@ final class ModernSpeechService: SpeechServiceProtocol, @unchecked Sendable {
                     self?.analyzer = analyzer
 
                     let engine = AVAudioEngine()
+                    AudioDeviceManager.configureInputDevice(uid: deviceUID, on: engine)
                     self?.audioEngine = engine
                     let inputNode = engine.inputNode
                     let format = inputNode.outputFormat(forBus: 0)
@@ -263,7 +265,18 @@ final class ModernSpeechService: SpeechServiceProtocol, @unchecked Sendable {
 }
 
 enum SpeechServiceFactory {
-    static func create(locale: String) -> any SpeechServiceProtocol {
-        LegacySpeechService()
+    static func create(locale: String) async -> any SpeechServiceProtocol {
+        // Try modern SpeechAnalyzer API on macOS 26+
+        if #available(macOS 26.0, *), SpeechTranscriber.isAvailable {
+            let transcriber = SpeechTranscriber(
+                locale: Locale(identifier: locale),
+                preset: .progressiveTranscription
+            )
+            let status = await AssetInventory.status(forModules: [transcriber])
+            if status >= .installed {
+                return ModernSpeechService()
+            }
+        }
+        return LegacySpeechService()
     }
 }

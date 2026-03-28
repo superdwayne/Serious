@@ -23,6 +23,9 @@ final class AppSettings {
     var speechLocale: String {
         didSet { UserDefaults.standard.set(speechLocale, forKey: "speechLocale") }
     }
+    var audioInputDeviceUID: String {
+        didSet { UserDefaults.standard.set(audioInputDeviceUID, forKey: "audioInputDeviceUID") }
+    }
     var hasCompletedOnboarding: Bool {
         didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
     }
@@ -40,6 +43,7 @@ final class AppSettings {
         self.matchSensitivity = defaults.object(forKey: "matchSensitivity") as? Double ?? 0.7
         self.silenceTimeout = defaults.object(forKey: "silenceTimeout") as? TimeInterval ?? 2.0
         self.speechLocale = defaults.string(forKey: "speechLocale") ?? "en-US"
+        self.audioInputDeviceUID = defaults.string(forKey: "audioInputDeviceUID") ?? ""
         self.hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
     }
 }
