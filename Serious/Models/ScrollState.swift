@@ -5,6 +5,7 @@ final class ScrollState {
     var currentWordIndex: Int = 0
     var isScrolling: Bool = false
     var isPaused: Bool = true
+    var isOffScript: Bool = false
     var totalWords: Int = 0
 
     var progress: Double {
@@ -21,6 +22,7 @@ final class ScrollState {
         currentWordIndex = 0
         isScrolling = false
         isPaused = true
+        isOffScript = false
     }
 
     func advanceTo(_ index: Int) {

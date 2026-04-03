@@ -144,6 +144,7 @@ final class TeleprompterViewModel {
             if let newIndex = wordMatcher.processTranscription(result) {
                 scrollState.advanceTo(newIndex)
             }
+            scrollState.isOffScript = wordMatcher.isOffScript
         }
 
         if !Task.isCancelled && isTracking {

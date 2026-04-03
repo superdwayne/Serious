@@ -182,6 +182,7 @@ final class LegacySpeechService: SpeechServiceProtocol, @unchecked Sendable {
     }
 }
 
+#if compiler(>=6.2)
 @available(macOS 26.0, *)
 final class ModernSpeechService: SpeechServiceProtocol, @unchecked Sendable {
     private let queue = DispatchQueue(label: "com.serious.modern-speech", qos: .userInitiated)
@@ -263,9 +264,11 @@ final class ModernSpeechService: SpeechServiceProtocol, @unchecked Sendable {
         }
     }
 }
+#endif
 
 enum SpeechServiceFactory {
     static func create(locale: String) async -> any SpeechServiceProtocol {
+        #if compiler(>=6.2)
         // Try modern SpeechAnalyzer API on macOS 26+
         if #available(macOS 26.0, *), SpeechTranscriber.isAvailable {
             let transcriber = SpeechTranscriber(
@@ -277,6 +280,7 @@ enum SpeechServiceFactory {
                 return ModernSpeechService()
             }
         }
+        #endif
         return LegacySpeechService()
     }
 }

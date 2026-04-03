@@ -13,9 +13,16 @@ struct ScriptTextView: View {
     /// Current animated scroll offset.
     @State private var scrollOffset: CGFloat = 0
     @State private var lastRow: Int = 0
+    /// Pulsing animation for off-script recovery words.
+    @State private var recoveryPulse: Bool = false
+
+    private static let recoveryColor = Color(red: 1.0, green: 0.75, blue: 0.3)
 
     var body: some View {
         let currentIndex = viewModel.scrollState.currentWordIndex
+        let isOffScript = viewModel.scrollState.isOffScript
+        let recoveryStart = currentIndex
+        let recoveryEnd = currentIndex + Constants.recoveryWordCount
 
         GeometryReader { geo in
             FlowLayout(
@@ -23,13 +30,21 @@ struct ScriptTextView: View {
                 verticalSpacing: settings.fontSize * 0.5
             ) {
                 ForEach(script.words) { word in
+                    let isRecoveryWord = isOffScript
+                        && word.id >= recoveryStart
+                        && word.id < recoveryEnd
+
                     Text(word.text)
                         .font(.system(size: settings.fontSize, weight: .medium, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(
+                            isRecoveryWord
+                                ? Self.recoveryColor.opacity(recoveryPulse ? 1.0 : 0.7)
+                                : .white.opacity(0.9)
+                        )
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.top, 4)
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
             .frame(width: geo.size.width, alignment: .center)
             .offset(y: -scrollOffset)
         }
@@ -50,12 +65,23 @@ struct ScriptTextView: View {
                 }
             }
         }
+        .onChange(of: isOffScript) { _, offScript in
+            if offScript {
+                withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
+                    recoveryPulse = true
+                }
+            } else {
+                withAnimation(.easeOut(duration: 0.3)) {
+                    recoveryPulse = false
+                }
+            }
+        }
     }
 
     /// Pre-compute row Y offsets and word→row mapping using font metrics.
     private func computeLayout() {
         let font = NSFont.monospacedSystemFont(ofSize: settings.fontSize, weight: .medium)
-        let availableWidth = settings.windowWidth - 16
+        let availableWidth = settings.windowWidth - 104
         let hSpacing = settings.fontSize * 0.35
         let vSpacing = settings.fontSize * 0.5
         let lineHeight = font.ascender - font.descender + font.leading

@@ -3,15 +3,21 @@ import Foundation
 @Observable
 final class WordMatcher {
     var currentPosition: Int = 0
+    private(set) var consecutiveMisses: Int = 0
     private var scriptWords: [ScriptWord] = []
     private var sensitivity: Double = 0.7
     private var candidatePosition: Int?
     private var candidateHits: Int = 0
 
+    var isOffScript: Bool {
+        consecutiveMisses >= Constants.offScriptThreshold
+    }
+
     func configure(script: Script, sensitivity: Double) {
         self.scriptWords = script.words
         self.sensitivity = sensitivity
         self.currentPosition = 0
+        self.consecutiveMisses = 0
         resetCandidate()
     }
 
@@ -65,7 +71,10 @@ final class WordMatcher {
             }
         }
 
-        guard let matchIndex = bestMatchIndex else { return nil }
+        guard let matchIndex = bestMatchIndex else {
+            consecutiveMisses += 1
+            return nil
+        }
 
         // ── 3) Gate large jumps — require consecutive confirmations ──
         // Only gate backwards jumps and very large forward jumps
@@ -84,6 +93,7 @@ final class WordMatcher {
         }
 
         currentPosition = matchIndex
+        consecutiveMisses = 0
         resetCandidate()
         return matchIndex
     }
@@ -134,6 +144,7 @@ final class WordMatcher {
 
     func reset() {
         currentPosition = 0
+        consecutiveMisses = 0
         resetCandidate()
     }
 

@@ -34,8 +34,8 @@ struct TeleprompterView: View {
                             .padding(.bottom, 4)
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .padding(.horizontal, 32)
+                .padding(.vertical, 20)
             } else {
                 VStack(spacing: 8) {
                     Text("No script loaded")

@@ -16,6 +16,9 @@ enum Constants {
     static let maxStepForward: Int = 10
     static let confirmationsRequired: Int = 2
 
+    static let offScriptThreshold: Int = 5
+    static let recoveryWordCount: Int = 8
+
     static let sfSpeechSessionLimit: TimeInterval = 55
 
     static let scriptsDirectoryName = "scripts"
