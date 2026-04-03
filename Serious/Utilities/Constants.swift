@@ -18,6 +18,7 @@ enum Constants {
 
     static let offScriptThreshold: Int = 5
     static let recoveryWordCount: Int = 8
+    static let offScriptSearchAhead: Int = 80
 
     static let sfSpeechSessionLimit: TimeInterval = 55
 

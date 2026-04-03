@@ -31,8 +31,9 @@ final class WordMatcher {
         // matches after speech-session restarts or at transcription start
         guard spokenWords.count >= Constants.minWordsForMatch else { return nil }
 
+        let ahead = isOffScript ? Constants.offScriptSearchAhead : Constants.searchWindowAhead
         let windowStart = max(0, currentPosition - Constants.searchWindowBack)
-        let windowEnd = min(scriptWords.count - 1, currentPosition + Constants.searchWindowAhead)
+        let windowEnd = min(scriptWords.count - 1, currentPosition + ahead)
         guard windowStart <= windowEnd else { return nil }
 
         var bestMatchIndex: Int?

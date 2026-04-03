@@ -39,7 +39,7 @@ struct ScriptTextView: View {
                         .foregroundColor(
                             isRecoveryWord
                                 ? Self.recoveryColor.opacity(recoveryPulse ? 1.0 : 0.7)
-                                : .white.opacity(0.9)
+                                : .white.opacity(isOffScript ? 0.3 : 0.9)
                         )
                 }
             }

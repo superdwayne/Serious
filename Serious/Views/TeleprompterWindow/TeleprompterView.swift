@@ -25,7 +25,14 @@ struct TeleprompterView: View {
                         )
 
                     // Status / error bar
-                    if let error = viewModel.trackingError {
+                    if viewModel.scrollState.isOffScript {
+                        Text("Off Script — read the highlighted words to get back on track")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(Color(red: 1.0, green: 0.75, blue: 0.3).opacity(0.9))
+                            .lineLimit(1)
+                            .padding(.horizontal, 8)
+                            .padding(.bottom, 4)
+                    } else if let error = viewModel.trackingError {
                         Text(error)
                             .font(.system(size: 9))
                             .foregroundStyle(.red.opacity(0.8))
